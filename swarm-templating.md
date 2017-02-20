@@ -13,7 +13,6 @@ In this example we send in the service name to the service via environment varia
 $ docker service create --replicas 2 \
 --env 'SERVICE={{.Service.Name}}'  \
 --network ov \
--t \
 alpine sh -c 'ping $SERVICE'
 
 $ docker logs 287
@@ -23,7 +22,7 @@ PING stupefied_keller (10.0.4.2): 56 data bytes
 ...
 ```
 
-Swarm backs service names by a distributed VIP that load balances to individual tasks within the service. Introspection of the service name may be useful for members of a clustered application that need to contact each other on startup.
+Swarm backs service names by a distributed VIP that load balances to individual tasks within the service. The VIP `10.0.4.2` will load balance between both replicas within the service. This kind of introspection may be useful for members of clustered applications that need to contact each other on startup.
 
 ####Introspection of the Service Task Number
 In most respects tasks of a service are idential. Task slots are unique sequential numbers starting from 1 that identify the tasks of a service. Introspection of the task slot can be useful to clustered applications who may need a persistent unique ID. The following service echos its task number and exits. Swarm re-schedules the tasks and we can see that the task slot number persists in the newly re-scheduled task.
