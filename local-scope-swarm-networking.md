@@ -1,4 +1,55 @@
+# Local Scope Swarm Networking
+In 17.06 Docker provides support for local scope networks in Swarm. This includes any local scope network driver. Some examples of these are `bridge`, `host`, and `macvlan` though any local scope network driver, built-in or plug-in, will work with Swarm. Previously only swarm scope networks like `overlay` were supported.
+
+## Lab Setup
+
+This lab is setup using vagrant. The MACVLAN driver requires the network and interfaces to be in promiscuous mode. This mode is often not possible in cloud environments which is why vagrant is an ideal choice to test with.
+
+Vagrantfile used for this example:
+
 ```
+Vagrant.configure("2") do |config|
+
+  config.vm.box = "ubuntu/trusty64"
+
+  config.vm.define "node1" do |node1|
+    node1.vm.hostname = 'node1'
+    node1.vm.network "private_network", type: "dhcp"
+    node1.vm.provision :shell, path: "bootstrap.sh"
+  end
+  config.vm.define "node2" do |node2|
+    node2.vm.hostname = 'node2'
+    node2.vm.network "private_network", type: "dhcp"
+    node2.vm.provision :shell, path: "bootstrap.sh"
+  end
+  config.vm.define "node3" do |node3|
+    node3.vm.hostname = 'node3'
+    node3.vm.network "private_network", type: "dhcp"
+    node3.vm.provision :shell, path: "bootstrap.sh"
+  end
+end
+```
+
+bootstrap.sh used for this example:
+
+```
+#!/usr/bin/env bash
+
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository "deb [arch=amd64] https://download-stage.docker.com/linux/ubuntu $(lsb_release -cs) test"
+sudo apt-get update
+sudo apt-get install -y linux-generic-lts-wily netcat iproute2 apt-transport-https ca-certificates curl
+sudo apt-get -y install docker-ce
+sudo usermod -aG docker vagrant
+sudo reboot
+```
+
+Create a 3-node swarm cluster from these nodes.
+
+```
+$ docker -v
+Docker version 17.06.0-ce-rc1, build 7f8486a
+
 $ docker node ls
 ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS
 7fs5izsl0rpqay7a540mslg9u *   node1               Ready               Active              Leader
@@ -6,7 +57,8 @@ a4ea2vg78szy98e5t62aiuiet     node2               Ready               Active
 gvhwwbvmo2ysyzcuitcwvv5o1     node3               Ready               Active
 ```
 
-Deploying a service in the host network namespace ...
+## Host Networking
+The `host` network driver simply places containers in the host network namespace. Containers will not receive their own network interfaces, but will see and use the network interfaces of the host.
 
 ```
 $ docker service create --network host --replicas 3 --name swarm-host-test chrch/docker-pets:1.0
@@ -17,8 +69,10 @@ $ curl localhost:5000
     <title>Docker PaaS</title>
   </head>
 ```
+
+## Bridge Networking
   
-Deploying a service on local-scope bridge networks ...
+The `bridge` driver is a simple L2 bridge that connects containers locally on a host. 
 
 ```
 $ docker network create -d bridge --scope swarm swarm-bridge
@@ -40,24 +94,31 @@ $ curl localhost:5001
 
 ```
 
-Deploying a service on local-scope macvlan networks ...
+## MACVLAN Networking
+`macvlan` is a type of Docker network driver that provides the capability to give external network IPs directly to containers. This enables containers to communicate directly with nodes on the external network without NAT or overlays.
 
-Create the local config on each node
+A local network config is created on each host. The config holds host-specific information, such as the subnet allocated for this host's containers. `--ip-range` is used to specify a pool of IP addresses that is a subset of IPs from the subnet. This is one method of IPAM to guarantee unique IP allocations.
 
 ```
 node1 $ docker network create --config-only --subnet 172.28.128.0/24 --gateway 172.28.128.1 -o parent=eth1 --ip-range 172.28.128.32/27 mv-config1
+
 node2 $ docker network create --config-only --subnet 172.28.128.0/24 --gateway 172.28.128.1 -o parent=eth1 --ip-range 172.28.128.64/27 mv-config1
+
 node3 $ docker network create --config-only --subnet 172.28.128.0/24 --gateway 172.28.128.1 -o parent=eth1 --ip-range 172.28.128.96/27 mv-config1
 ```
 
-Instantiate the macvlan network globally and deploy the service
+Instantiate the macvlan network globally.
 
 ```
-node1 $ docker network create -d macvlan --scope swarm --config-from mv-config1 --attachable mvlan1
+node1 $ docker network create -d macvlan --scope swarm --config-from mv-config1 mvlan1
+```
+Deploy a service to the `mvlan1` network.
+
+```
 node1 $ docker service create --replicas 3 --network swarm-macvlan --name swarm-macvlan-test chrch/docker-pets:1.0
 ```
 
-Ping the container macvlan IP from a different host
+We can now demonstrate multi-host connectivity by accessing a container on `node1` from `node2`. 
 
 ```
 node1 $ docker exec -it swarm-macvlan-test.2.ya09dwzqpkgknwzipemia1mtr ip add sho eth0
