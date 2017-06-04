@@ -97,6 +97,12 @@ $ curl localhost:5001
 ## MACVLAN Networking
 `macvlan` is a type of Docker network driver that provides the capability to give external network IPs directly to containers. This enables containers to communicate directly with nodes on the external network without NAT or overlays.
 
+Remove the previous services from the cluster so that the ports do not collide.
+
+```
+node1 $ docker service rm $(docker service ls -q)
+```
+
 A local network config is created on each host. The config holds host-specific information, such as the subnet allocated for this host's containers. `--ip-range` is used to specify a pool of IP addresses that is a subset of IPs from the subnet. This is one method of IPAM to guarantee unique IP allocations.
 
 ```
