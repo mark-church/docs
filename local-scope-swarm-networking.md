@@ -103,10 +103,11 @@ Remove the previous services from the cluster so that the ports do not collide.
 node1 $ docker service rm $(docker service ls -q)
 ```
 
-The macvlan interfaces of each Docker host and any virtual network you are using should be in promiscuous mode.
+The macvlan interfaces of each Docker host and any virtual network you are using should be in promiscuous mode. If using virtualbox then the NIC of VM needs to be set as promiscuous in the settings of the network as well. 
 
 ```
 $ sudo ip link set dev eth1 promisc on
+
 $ netstat -i
 Kernel Interface table
 Iface   MTU Met   RX-OK RX-ERR RX-DRP RX-OVR    TX-OK TX-ERR TX-DRP TX-OVR Flg
@@ -118,17 +119,17 @@ eth1       1500 0      4299      0      0 0          3301      0      0      0 B
 A local network config is created on each host. The config holds host-specific information, such as the subnet allocated for this host's containers. `--ip-range` is used to specify a pool of IP addresses that is a subset of IPs from the subnet. This is one method of IPAM to guarantee unique IP allocations.
 
 ```
-node1 $ docker network create --config-only --subnet 172.28.128.0/24 --gateway 172.28.128.1 -o parent=eth1 --ip-range 172.28.128.32/27 mv-config1
+node1 $ docker network create --config-only --subnet 172.28.128.0/24 --gateway 172.28.128.1 -o parent=eth1 --ip-range 172.28.128.32/27 mv-config
 
-node2 $ docker network create --config-only --subnet 172.28.128.0/24 --gateway 172.28.128.1 -o parent=eth1 --ip-range 172.28.128.64/27 mv-config1
+node2 $ docker network create --config-only --subnet 172.28.128.0/24 --gateway 172.28.128.1 -o parent=eth1 --ip-range 172.28.128.64/27 mv-config
 
-node3 $ docker network create --config-only --subnet 172.28.128.0/24 --gateway 172.28.128.1 -o parent=eth1 --ip-range 172.28.128.96/27 mv-config1
+node3 $ docker network create --config-only --subnet 172.28.128.0/24 --gateway 172.28.128.1 -o parent=eth1 --ip-range 172.28.128.96/27 mv-config
 ```
 
 Instantiate the macvlan network globally.
 
 ```
-node1 $ docker network create -d macvlan --scope swarm --config-from mv-config1 mvlan1
+node1 $ docker network create -d macvlan --scope swarm --config-from mv-config swarm-macvlan-test
 ```
 Deploy a service to the `mvlan1` network.
 
