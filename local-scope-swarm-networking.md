@@ -103,6 +103,18 @@ Remove the previous services from the cluster so that the ports do not collide.
 node1 $ docker service rm $(docker service ls -q)
 ```
 
+The macvlan interfaces of each Docker host and any virtual network you are using should be in promiscuous mode.
+
+```
+$ sudo ip link set dev eth1 promisc on
+$ netstat -i
+Kernel Interface table
+Iface   MTU Met   RX-OK RX-ERR RX-DRP RX-OVR    TX-OK TX-ERR TX-DRP TX-OVR Flg
+0 BMRU
+eth0       1500 0     58973      0      0 0         21393      0      0      0 BMRU
+eth1       1500 0      4299      0      0 0          3301      0      0      0 BMPRU
+```
+
 A local network config is created on each host. The config holds host-specific information, such as the subnet allocated for this host's containers. `--ip-range` is used to specify a pool of IP addresses that is a subset of IPs from the subnet. This is one method of IPAM to guarantee unique IP allocations.
 
 ```
