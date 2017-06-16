@@ -31,7 +31,7 @@ eth2      Link encap:Ethernet  HWaddr 08:00:27:2e:74:3f
           inet addr:192.168.2.10  Bcast:192.168.2.255  Mask:255.255.255.0
 ...
 
-node1 $ docker swarm init --advertise-addr eth1 --datapath-addr eth2
+node1 $ docker swarm init --advertise-addr eth1 --data-path-addr eth2
 
 node2 $ docker swarm join --token SWMTKN-1-5fruwh3u3kq5tn817hft4zqzau5e3el8yk59i24eprnoovpssh-bolvsn6q8qa5r3jqdavxmdmql --data-path-addr eth2 192.168.1.10:2377
 
