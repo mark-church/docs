@@ -129,18 +129,18 @@ node3 $ docker network create --config-only --subnet 172.28.128.0/24 --gateway 1
 Instantiate the macvlan network globally.
 
 ```
-node1 $ docker network create -d macvlan --scope swarm --config-from mv-config swarm-macvlan-test
+node1 $ docker network create -d macvlan --scope swarm --config-from mv-config mv-net
 ```
 Deploy a service to the `mvlan1` network.
 
 ```
-node1 $ docker service create --replicas 3 --network swarm-macvlan --name swarm-macvlan-test chrch/docker-pets:1.0
+node1 $ docker service create --replicas 3 --network mv-net --name pets-macvlan chrch/docker-pets:1.0
 ```
 
 We can now demonstrate multi-host connectivity by accessing a container on `node1` from `node2`. 
 
 ```
-node1 $ docker exec -it swarm-macvlan-test.2.ya09dwzqpkgknwzipemia1mtr ip add sho eth0
+node1 $ docker exec -it pets-macvlan.2.ya09dwzqpkgknwzipemia1mtr ip add sho eth0
 37: eth0@if3: <BROADCAST,MULTICAST,UP,LOWER_UP,M-DOWN> mtu 1500 qdisc noqueue state UNKNOWN
     link/ether 02:42:ac:1c:80:21 brd ff:ff:ff:ff:ff:ff
     inet 172.28.128.33/24 scope global eth0
